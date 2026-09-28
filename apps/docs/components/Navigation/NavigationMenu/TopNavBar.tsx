@@ -7,69 +7,93 @@ import { Command, Menu, Search } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { FC } from 'react'
+import type { Ref } from 'react'
 import { memo, useState } from 'react'
 import { Button, buttonVariants, cn } from 'ui'
 import { AuthenticatedDropdownMenu } from 'ui-patterns/AuthenticatedDropdownMenu'
 import { CommandMenuTriggerInput } from 'ui-patterns/CommandMenu'
 
 import { getCustomContent } from '../../../lib/custom-content/getCustomContent'
-import GlobalNavigationMenu from './GlobalNavigationMenu'
+import { BorderJoint } from '../BorderJoint'
+import { DocsSectionsMenu } from './DocsSectionsMenu'
+import { HeaderBreadcrumbs } from './HeaderBreadcrumbs'
+import { HeaderUtilityLinks } from './HeaderUtilityLinks'
+import { PageActionButtons } from './PageActionButtons'
 import useDropdownMenu from './useDropdownMenu'
 import { SearchV2Trigger, useSearchV2Variant } from '@/features/SearchV2'
 
+interface ClassNameProps {
+  className?: string
+}
+
+interface TopNavBarProps {
+  headingSlotRef?: Ref<HTMLLIElement>
+}
+
+interface HeaderLogoProps {
+  hasDocsLabel?: boolean
+}
+
 const GlobalMobileMenu = dynamic(() => import('./GlobalMobileMenu'))
-const TopNavDropdown = dynamic(() => import('./TopNavDropdown'))
 
 const largeLogo = isFeatureEnabled('branding:large_logo')
 
-const TopNavBar: FC = () => {
+const TopNavBar = ({ headingSlotRef }: TopNavBarProps) => {
   const isLoggedIn = useIsLoggedIn()
   const isUserLoading = useIsUserLoading()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const user = useUser()
   const menu = useDropdownMenu(user)
-  const searchVariant = useSearchV2Variant()
-
   return (
     <>
       <nav
         aria-label="top bar"
-        className="w-full z-40 flex flex-col subhighlight-border backdrop-blur-sm backdrop-filter bg-default/75"
+        className="w-full z-40 flex flex-col backdrop-blur-sm backdrop-filter bg-default/75"
       >
-        <div className="w-full px-5 lg:pl-10 flex justify-between h-(--header-height) gap-3">
-          <div className="hidden lg:flex h-full items-center justify-center gap-2">
-            <HeaderLogo />
-            <GlobalNavigationMenu />
+        <div className="w-full flex h-(--header-height) border-b border-dashed">
+          {/* the open sections menu's bottom border replaces this cell's */}
+          <div
+            className={cn(
+              'relative hidden lg:flex w-70 shrink-0 items-center gap-1.5 px-4 border-r border-dashed',
+              'after:absolute after:inset-x-0 after:-bottom-px after:hidden after:h-px after:bg-background',
+              'group-has-[[data-docs-sections-menu]:not([hidden])]/docs:after:block'
+            )}
+          >
+            <BorderJoint className="-right-[8px] -bottom-[8px] lg:group-has-[[data-docs-sidebar]]/docs:flex group-has-[[data-docs-sections-menu]:not([hidden])]/docs:invisible" />
+            <HeaderLogo hasDocsLabel={false} />
+            <DocsSectionsMenu />
           </div>
-          <div className="w-full grow lg:w-auto flex gap-3 justify-between lg:justify-end items-center h-full">
-            <div className="lg:hidden">
-              <HeaderLogo />
+          <div className="hidden lg:flex min-w-0 flex-1 items-center gap-4 pl-6 pr-2">
+            <HeaderBreadcrumbs headingSlotRef={headingSlotRef} />
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <DocsSearchTrigger className="hidden lg:flex lg:group-has-[[data-docs-sidebar]]/docs:hidden" />
+              <PageActionButtons />
             </div>
-
+          </div>
+          <div className="relative hidden lg:flex w-70 shrink-0 items-center justify-end gap-3 pl-4 pr-2.5 border-dashed group-has-[[data-docs-right-rail]]/docs:border-l">
+            <BorderJoint className="-left-[8px] -bottom-[8px] lg:group-has-[[data-docs-right-rail]]/docs:flex" />
+            <DevToolbarTrigger />
+            <HeaderUtilityLinks />
+            {process.env.NEXT_PUBLIC_DEV_AUTH_PAGE === 'true' && (
+              <Button asChild>
+                <Link href="/dev-secret-auth">Dev-only secret sign-in</Link>
+              </Button>
+            )}
+            {!isUserLoading && (
+              <Button variant="default" asChild>
+                <a href="/dashboard" className="h-[30px]" target="_blank" rel="noreferrer noopener">
+                  {isLoggedIn ? 'Dashboard' : 'Sign up'}
+                </a>
+              </Button>
+            )}
+            {isLoggedIn ? <AuthenticatedDropdownMenu menu={menu} user={user} site="docs" /> : null}
+          </div>
+          <div className="flex lg:hidden w-full px-5 gap-3 justify-between items-center">
+            <HeaderLogo />
             <div className="flex gap-2 items-center">
+              <PageActionButtons className="hidden md:flex" />
               <DevToolbarTrigger />
-              {searchVariant === 'search-v2-active' ? (
-                <SearchV2Trigger
-                  className="[&>div>p]:text-foreground-lighter"
-                  placeholder={
-                    <>
-                      Search
-                      <span className="hidden xl:inline ml-1"> docs...</span>
-                    </>
-                  }
-                />
-              ) : (
-                <CommandMenuTriggerInput
-                  className="[&>div>p]:text-foreground-lighter"
-                  placeholder={
-                    <>
-                      Search
-                      <span className="hidden xl:inline ml-1"> docs...</span>
-                    </>
-                  }
-                />
-              )}
+              <DocsSearchTrigger />
               <button
                 tabIndex={0}
                 title="Menu dropdown button"
@@ -83,25 +107,6 @@ const TopNavBar: FC = () => {
               </button>
             </div>
           </div>
-          <div className="hidden lg:flex items-center justify-end gap-3">
-            {!isUserLoading && (
-              <Button variant="primary" asChild>
-                <a href="/dashboard" className="h-[30px]" target="_blank" rel="noreferrer noopener">
-                  {isLoggedIn ? 'Dashboard' : 'Sign up'}
-                </a>
-              </Button>
-            )}
-            {process.env.NEXT_PUBLIC_DEV_AUTH_PAGE === 'true' && (
-              <Button asChild>
-                <Link href="/dev-secret-auth">Dev-only secret sign-in</Link>
-              </Button>
-            )}
-            {isLoggedIn ? (
-              <AuthenticatedDropdownMenu menu={menu} user={user} site="docs" />
-            ) : (
-              <TopNavDropdown />
-            )}
-          </div>
         </div>
       </nav>
       <GlobalMobileMenu open={mobileMenuOpen} setOpen={setMobileMenuOpen} />
@@ -109,7 +114,29 @@ const TopNavBar: FC = () => {
   )
 }
 
-const HeaderLogo = memo(() => {
+export const DocsSearchTrigger = ({ className }: ClassNameProps) => {
+  const searchVariant = useSearchV2Variant()
+  const placeholder = (
+    <>
+      Search
+      <span className="hidden xl:inline ml-1"> docs...</span>
+    </>
+  )
+
+  return searchVariant === 'search-v2-active' ? (
+    <SearchV2Trigger
+      className={cn('[&>div>p]:text-foreground-lighter', className)}
+      placeholder={placeholder}
+    />
+  ) : (
+    <CommandMenuTriggerInput
+      className={cn('[&>div>p]:text-foreground-lighter', className)}
+      placeholder={placeholder}
+    />
+  )
+}
+
+const HeaderLogo = memo(({ hasDocsLabel = true }: HeaderLogoProps) => {
   const { navigationLogo } = getCustomContent(['navigation:logo'])
 
   return (
@@ -132,7 +159,9 @@ const HeaderLogo = memo(() => {
         height={navigationLogo?.height ?? 18}
         alt="Supabase wordmark"
       />
-      <span className="font-mono text-sm font-medium text-primary mb-px">DOCS</span>
+      {hasDocsLabel ? (
+        <span className="font-mono text-sm font-medium text-primary mb-px">DOCS</span>
+      ) : null}
     </Link>
   )
 })
