@@ -6,6 +6,7 @@ import '../pages/launch-week/launchWeek.css'
 import { inter, manrope, sourceCodePro } from '~/lib/fonts'
 import { genFaviconData } from 'common/MetaFavicons/app-router'
 import type { Metadata, Viewport } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 
 import Providers from './providers'
 import { APP_NAME, DEFAULT_META_DESCRIPTION } from '@/lib/constants'
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   )
